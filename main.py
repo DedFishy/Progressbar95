@@ -2,6 +2,8 @@ import pygame
 import utils
 from colors import transparent
 from progressbar import Progressbar
+import random
+from segment import Segment
 
 pygame.init()
 
@@ -17,6 +19,11 @@ hwnd = pygame.display.get_wm_info()["window"]
 utils.config_win32_window(hwnd)
 
 progressbar = Progressbar([width, height])
+segments: list[Segment] = []
+
+segment_timer_range = (10, 100)
+
+segment_time_remaining = 0
 
 clock = pygame.time.Clock()
 
@@ -26,9 +33,18 @@ while not done:
         if event.type == pygame.QUIT:
             done = True
 
+    segment_time_remaining -= 1
+
+    if segment_time_remaining <= 0:
+        segments.append(Segment(random.randint(0, width)))
+        segment_time_remaining = random.randint(*segment_timer_range)
+
     screen.fill(transparent)
 
-    progressbar.update(screen)
+    progressbar.update(screen, segments)
+
+    for segment in segments:
+        segment.update(screen, progressbar)
 
 
     pygame.display.update()
