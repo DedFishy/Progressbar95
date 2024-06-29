@@ -3,7 +3,7 @@ import utils
 from colors import transparent
 from progressbar import Progressbar
 import random
-from segment import Segment
+from segment import Segment, SegmentBreakParticles
 
 pygame.init()
 
@@ -20,6 +20,7 @@ utils.config_win32_window(hwnd)
 
 progressbar = Progressbar([width, height])
 segments: list[Segment] = []
+segment_particles: list[SegmentBreakParticles] = []
 
 segment_timer_range = (10, 100)
 
@@ -41,11 +42,21 @@ while not done:
 
     screen.fill(transparent)
 
-    progressbar.update(screen, segments)
+    segments_to_destroy = progressbar.update(screen, segments)
+
+    for segment in segments_to_destroy:
+        segment_particles.append(segment.destroy())
+        segments.remove(segment)
 
     for segment in segments:
-        segment.update(screen, progressbar)
+        result = segment.update(screen, progressbar)
+        if result == False:
+            segments.remove(segment)
 
+    for segment in segment_particles:
+        result = segment.update(screen)
+        if result == False:
+            segment_particles.remove(segment)
 
     pygame.display.update()
 

@@ -27,6 +27,52 @@ weights =        [100,         75,            20,            10,            60, 
 segment_speeds = [2,           2,             5,             4,             4,           2,           2]
 segment_speed_variance = min(segment_speeds) - 1
 
+particle_count = 5
+particle_size = 5
+particle_size_variance = 2
+particle_size_factor = 2 # ratio between width and height
+particle_angular_velocity = 1
+particle_velocity = 2
+particle_lifetime = 40
+particle_lifetime_variance = 10
+
+class SegmentBreakParticles:
+    def __init__(self, pos, color):
+        self.particles = []
+
+        for _ in range(particle_count):
+            particle = {}
+            particle_width = random.randint(particle_size-particle_size_variance, particle_size+particle_size_variance)
+            particle["surface"] = pygame.Surface(
+                (
+                    particle_width,
+                    particle_width * particle_size_factor
+                )
+            )
+            particle["surface"].set_colorkey((0, 0, 0))
+            particle["surface"].fill(color_to_rgb[color])
+            particle["pos"] = pos.copy()
+            particle["velocity"] = [random.randint(-particle_velocity, particle_velocity), random.randint(-particle_velocity, particle_velocity)]
+            particle["angle"] = random.randint(0, 360)
+            particle["angular_velocity"] = random.choice([-1, 1]) * particle_angular_velocity
+            particle["lifetime"] = random.randint(particle_lifetime-particle_lifetime_variance, particle_lifetime+particle_lifetime_variance)
+            self.particles.append(particle)
+
+
+    def update(self, screen: pygame.Surface):
+        if len(self.particles) == 0:
+            return False
+        for particle in self.particles:
+            particle["lifetime"] -= 1
+            if particle["lifetime"] <= 0:
+                self.particles.remove(particle)
+                continue
+            particle["pos"][0] += particle["velocity"][0]
+            particle["pos"][1] += particle["velocity"][1]
+            particle["angle"] += particle["angular_velocity"]
+            particle["angle"] %= 360
+            screen.blit(pygame.transform.rotate(particle["surface"], particle["angle"]), particle["pos"])
+
 class Segment:
     def __init__(self, pos_x, color=None, speed=None):
         if not color:
@@ -36,12 +82,15 @@ class Segment:
             speed = random.randint(speed_middle-segment_speed_variance, speed_middle+segment_speed_variance)
         self.color = color
         self.speed = speed
-        size = [15, 32]
+        size = [16, 32]
         self.rgb = color_to_rgb[color]
 
         self.rect = pygame.Rect(pos_x, -size[1], *size)
 
         self.progressbar_position = -1 # if it's > -1, we're in the progress bar
+
+    def destroy(self):
+        return SegmentBreakParticles(list(self.rect.topleft), self.color)
 
     def update(self, screen: pygame.Surface, progressbar):
 

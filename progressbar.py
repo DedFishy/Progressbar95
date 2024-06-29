@@ -1,6 +1,6 @@
 import pygame
 import utils
-from segment import Segment
+from segment import Segment, SegmentBreakParticles
 
 class Progressbar:
     def __init__(self, window_size: list[int]):
@@ -22,14 +22,20 @@ class Progressbar:
         mouse_pos = pygame.mouse.get_pos()
         mouse_presses = pygame.mouse.get_pressed(3)
 
+        segments_to_destroy = []
+
         for segment in segments:
+            if isinstance(segment, SegmentBreakParticles):
+                continue
             if not segment.progressbar_position > -1:
                 if pygame.Rect.colliderect(self.rect, segment.rect):
 
-                    if self.progressbar_fill > 0 and pygame.Rect.colliderect(self.rect.move(self.progressbar_fill*segment.rect.w + self.bezel[0], 0), segment.rect):
+                    if self.progressbar_fill == 0 or pygame.Rect.colliderect(self.rect.move(self.progressbar_fill*segment.rect.w + self.bezel[0], 0), segment.rect):
 
                         segment.progressbar_position = self.progressbar_fill
                         self.progressbar_fill += 1
+                    else:
+                        segments_to_destroy.append(segment)
 
         if mouse_presses[0] and not self.is_progressbar_grabbed:
             self.is_progressbar_grabbed = True
@@ -42,3 +48,5 @@ class Progressbar:
             self.rect.y = mouse_pos[1]-self.progressbar_grabbed_offset[1]
 
         screen.blit(self.progressbar, self.rect.topleft)
+
+        return segments_to_destroy
