@@ -42,11 +42,15 @@ while not done:
 
     screen.fill(transparent)
 
-    segments_to_destroy = progressbar.update(screen, segments)
+    segments_to_destroy, segments_to_destroy_quietly = progressbar.update(screen, segments)
 
+    for segment in segments_to_destroy_quietly:
+        if segment in segments_to_destroy: segments_to_destroy.remove(segment)
+        if segment in segments: segments.remove(segment)
     for segment in segments_to_destroy:
         segment_particles.append(segment.destroy())
         segments.remove(segment)
+
 
     for segment in segments:
         result = segment.update(screen, progressbar)

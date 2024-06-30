@@ -74,10 +74,10 @@ class SegmentBreakParticles:
             screen.blit(pygame.transform.rotate(particle["surface"], particle["angle"]), particle["pos"])
 
 class Segment:
-    def __init__(self, pos_x, color=None, speed=None):
-        if not color:
+    def __init__(self, pos_x, color=None, speed=None, pos_y=None):
+        if color == None:
             color = random.choices(color_list, weights)[0]
-        if not speed:
+        if speed == None:
             speed_middle = segment_speeds[color_list.index(color)]
             speed = random.randint(speed_middle-segment_speed_variance, speed_middle+segment_speed_variance)
         self.color = color
@@ -85,16 +85,33 @@ class Segment:
         size = [16, 32]
         self.rgb = color_to_rgb[color]
 
-        self.rect = pygame.Rect(pos_x, -size[1], *size)
+        self.rect = pygame.Rect(pos_x, -size[1] if pos_y == None else pos_y, *size)
 
         self.progressbar_position = -1 # if it's > -1, we're in the progress bar
+
+        self.targeted_position = 0
+        self.current_position = lambda: 0
+        self.targeted_position_speed = 1
+        self.targeted_position_current_speed = 0
+        self.targeted_position_translation = None
+        self.is_animating = False
 
     def destroy(self):
         return SegmentBreakParticles(list(self.rect.topleft), self.color)
 
-    def update(self, screen: pygame.Surface, progressbar):
+    def animate_collection(self, progressbar):
+        self.targeted_position = self.rect.width*self.progressbar_position
+        self.current_position = lambda: self.rect.left - progressbar.rect.left - progressbar.bezel[0]
+        self.targeted_position_translation = lambda x: [
+            progressbar.rect.left + progressbar.bezel[0] + x,
+            progressbar.rect.top + progressbar.bezel[1]]
 
-        if self.progressbar_position > -1:
+        self.is_animating = True
+
+    def update(self, screen: pygame.Surface, progressbar):
+        if self.is_animating:
+            self.current_position = utils.difference_to_direction_factor(self.current_position() - self.targeted_position)
+        elif self.progressbar_position > -1:
             self.rect.x = progressbar.rect.left + progressbar.bezel[0] + (self.rect.size[0] * self.progressbar_position)
             self.rect.y = progressbar.rect.top + progressbar.bezel[1]
         else:

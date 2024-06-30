@@ -17,3 +17,10 @@ def calculate_center_positioning(container_size, child_size):
         container_size[0]/2 - child_size[0]/2,
         container_size[1]/2 - child_size[1]/2
     ]
+
+def difference_to_direction_factor(difference):
+    if difference > 0:
+        return 1
+    elif difference < 0:
+        return -1
+    return 0
