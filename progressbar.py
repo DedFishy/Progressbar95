@@ -1,7 +1,8 @@
 from gc import collect
 import pygame
 import utils
-from segment import Colors, Segment, SegmentBreakParticles
+from segment import Colors, Segment, SegmentBreakParticles, color_to_sound
+from fonts import fonts
 
 class Progressbar:
     def __init__(self, window_size: list[int]):
@@ -22,14 +23,24 @@ class Progressbar:
         self.progressbar_fill = 0
         self.collected_segments = []
 
+        self.update_percentage_surface()
+
+    def update_percentage_surface(self):
+        self.percentage_surface = fonts["progressbar-percentage"].render(str(self.progressbar_fill * 5) + "%", False, (255, 255, 255))
+
     def get_segment_rect(self):
         return pygame.Rect(self.rect.left + self.bezel[0], self.rect.top + self.rect.height - self.bezel[1] - self.segment_collision_bottom_margin, self.rect.width - self.bezel[0]*2, self.segment_collision_bottom_margin)
 
     def collect_segment(self, segment):
+
         self.collected_segments.append(segment)
         segment.progressbar_position = self.progressbar_fill
         segment.animate_collection(self)
         self.progressbar_fill += 1
+
+    def render_precentage(self, screen: pygame.Surface):
+        screen.blit(self.percentage_surface, utils.translate_coords(utils.calculate_center_positioning(self.rect.size, self.percentage_surface.get_size()), self.rect.topleft))
+
 
     def update(self, screen: pygame.Surface, segments: list[Segment]):
         mouse_pos = pygame.mouse.get_pos()
@@ -39,6 +50,7 @@ class Progressbar:
 
         segments_to_destroy = []
         segments_to_destroy_quietly = []
+        segments_to_spawn = []
 
         for segment in segments:
             if isinstance(segment, SegmentBreakParticles):
@@ -46,7 +58,7 @@ class Progressbar:
             if not segment.progressbar_position > -1:
                 if pygame.Rect.colliderect(segment_rect, segment.rect):
 
-                    if self.progressbar_fill == 0 or pygame.Rect.colliderect(self.rect.move(self.progressbar_fill*segment.rect.w + self.bezel[0], 0), segment.rect):
+                    if self.progressbar_fill == 0 or pygame.Rect.colliderect(self.rect.move(self.progressbar_fill*segment.rect.w + self.bezel[0], 0), segment.rect) and self.progressbar_fill < 20:
                         if segment.color == Colors.BLUE:
                             self.collect_segment(segment)
                         elif segment.color == Colors.BLUEX2 or segment.color == Colors.BLUEX3:
@@ -54,8 +66,17 @@ class Progressbar:
 
                             for _ in range(2 if segment.color == Colors.BLUEX2 else 3):
                                 added_segment = Segment(segment.rect.left, Colors.BLUE, segment.speed, segment.rect.top)
-                                segments.append(added_segment)
+                                added_segment.is_from_multiple = True
+                                segments_to_spawn.append(added_segment)
                                 self.collect_segment(added_segment)
+                        elif segment.color == Colors.PINK:
+                            segments_to_destroy_quietly.append(segment)
+                            if self.progressbar_fill > 0:
+                                segments_to_destroy_quietly.append(self.collected_segments.pop())
+                                self.progressbar_fill -= 1
+
+                        self.update_percentage_surface()
+
                     else:
                         segments_to_destroy.append(segment)
 
@@ -71,4 +92,4 @@ class Progressbar:
 
         screen.blit(self.progressbar, self.rect.topleft)
 
-        return segments_to_destroy, segments_to_destroy_quietly
+        return segments_to_destroy, segments_to_destroy_quietly, segments_to_spawn

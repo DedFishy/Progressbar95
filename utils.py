@@ -18,9 +18,13 @@ def calculate_center_positioning(container_size, child_size):
         container_size[1]/2 - child_size[1]/2
     ]
 
+def translate_coords(coords, translation):
+    return [coords[0] + translation[0],
+            coords[1] + translation[1]]
+
 def difference_to_direction_factor(difference):
     if difference > 0:
-        return 1
-    elif difference < 0:
         return -1
+    elif difference < 0:
+        return 1
     return 0

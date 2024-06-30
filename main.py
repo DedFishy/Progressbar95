@@ -1,12 +1,16 @@
 import pygame
+
+pygame.init()
+
 import utils
 from colors import transparent
 from progressbar import Progressbar
 import random
 from segment import Segment, SegmentBreakParticles
 
-pygame.init()
-
+music = pygame.mixer.Sound("music.mp3")
+music.set_volume(0.3)
+music.play(-1)
 
 info = pygame.display.Info()
 width, height = info.current_w, info.current_h
@@ -26,6 +30,10 @@ segment_timer_range = (10, 100)
 
 segment_time_remaining = 0
 
+segment_spawn_queue_time = 20
+segment_spawn_queue_remaining = 0
+segment_spawn_queue = []
+
 clock = pygame.time.Clock()
 
 
@@ -42,7 +50,7 @@ while not done:
 
     screen.fill(transparent)
 
-    segments_to_destroy, segments_to_destroy_quietly = progressbar.update(screen, segments)
+    segments_to_destroy, segments_to_destroy_quietly, segments_to_spawn = progressbar.update(screen, segments)
 
     for segment in segments_to_destroy_quietly:
         if segment in segments_to_destroy: segments_to_destroy.remove(segment)
@@ -51,6 +59,15 @@ while not done:
         segment_particles.append(segment.destroy())
         segments.remove(segment)
 
+    segment_spawn_queue.extend(segments_to_spawn)
+
+    if len(segment_spawn_queue) > 0:
+        segment_spawn_queue_remaining -= 1
+        if segment_spawn_queue_remaining <= 0:
+            segment_spawn_queue_remaining = segment_spawn_queue_time
+            segments.append(segment_spawn_queue.pop(0))
+    else:
+        segment_spawn_queue_remaining = 0
 
     for segment in segments:
         result = segment.update(screen, progressbar)
@@ -61,6 +78,8 @@ while not done:
         result = segment.update(screen)
         if result == False:
             segment_particles.remove(segment)
+
+    progressbar.render_precentage(screen)
 
     pygame.display.update()
 

@@ -22,6 +22,13 @@ color_to_rgb = {
     Colors.RED: colors.red
 }
 
+color_to_sound = {
+    Colors.BLUE: pygame.mixer.Sound("collect_blue.mp3"),
+    Colors.YELLOW: pygame.mixer.Sound("collect_yellow.mp3")
+}
+break_sound = pygame.mixer.Sound("break.mp3")
+collect_multiple_sound = pygame.mixer.Sound("collect_blue_multiple.mp3")
+
 color_list =     [Colors.BLUE, Colors.YELLOW, Colors.BLUEX2, Colors.BLUEX3, Colors.PINK, Colors.GRAY, Colors.RED]
 weights =        [100,         75,            20,            10,            60,          50,          20]
 segment_speeds = [2,           2,             5,             4,             4,           2,           2]
@@ -89,19 +96,25 @@ class Segment:
 
         self.progressbar_position = -1 # if it's > -1, we're in the progress bar
 
+        self.on_collected = None
+
         self.targeted_position = 0
-        self.current_position = lambda: 0
-        self.targeted_position_speed = 1
-        self.targeted_position_current_speed = 0
-        self.targeted_position_translation = None
+        self.current_position = 0
+        self.targeted_position_speed = 8
+        self.targeted_position_translation = lambda x: [0, 0]
+        self.previous_direction = 0
         self.is_animating = False
 
+        self.has_played_collection = False
+
+        self.is_from_multiple = False
     def destroy(self):
+        break_sound.play()
         return SegmentBreakParticles(list(self.rect.topleft), self.color)
 
     def animate_collection(self, progressbar):
         self.targeted_position = self.rect.width*self.progressbar_position
-        self.current_position = lambda: self.rect.left - progressbar.rect.left - progressbar.bezel[0]
+        self.current_position = self.rect.left - progressbar.rect.left - progressbar.bezel[0]
         self.targeted_position_translation = lambda x: [
             progressbar.rect.left + progressbar.bezel[0] + x,
             progressbar.rect.top + progressbar.bezel[1]]
@@ -110,8 +123,25 @@ class Segment:
 
     def update(self, screen: pygame.Surface, progressbar):
         if self.is_animating:
-            self.current_position = utils.difference_to_direction_factor(self.current_position() - self.targeted_position)
+            direction = utils.difference_to_direction_factor(self.current_position - self.targeted_position)
+            if self.previous_direction != 0 and direction != self.previous_direction:
+                self.targeted_position_speed -= 0.5
+            self.previous_direction = direction
+            self.current_position += direction * self.targeted_position_speed
+            self.rect.topleft = self.targeted_position_translation(self.current_position)
+            if self.current_position == self.targeted_position:
+                if not self.targeted_position_speed == 0:
+                    self.current_position += -self.previous_direction * self.targeted_position_speed
+                self.is_animating = False
         elif self.progressbar_position > -1:
+            if self.on_collected != None:
+                self.on_collected()
+            if not self.has_played_collection:
+                self.has_played_collection = True
+                if self.is_from_multiple:
+                    collect_multiple_sound.play()
+                elif self.color in color_to_sound.keys():
+                    color_to_sound[self.color].play()
             self.rect.x = progressbar.rect.left + progressbar.bezel[0] + (self.rect.size[0] * self.progressbar_position)
             self.rect.y = progressbar.rect.top + progressbar.bezel[1]
         else:
