@@ -1,3 +1,4 @@
+from operator import add
 import pygame
 from floating_text import FloatingText
 import utils
@@ -62,6 +63,7 @@ class Progressbar:
         segments_to_destroy_quietly = []
         segments_to_spawn = []
         text_to_spawn = []
+        crashed = False
 
         if has_won:
             direction_x = utils.difference_to_weighted_direction_factor(self.rect.left - self.win_target_position[0])
@@ -91,26 +93,40 @@ class Progressbar:
                     elif pygame.Rect.colliderect(segment_rect, segment.rect):
 
                         if self.progressbar_fill == 0 or pygame.Rect.colliderect(self.rect.move(self.progressbar_fill*segment.rect.w + self.bezel[0], 0), segment.rect) and self.progressbar_fill < 20:
-                            if segment.color == Colors.BLUE:
+                            if segment.color == Colors.BLUE or segment.color == Colors.YELLOW:
                                 self.collect_segment(segment)
-                                text_to_spawn.append(FloatingText("5%", segment.rect.center))
+                                text_to_spawn.append(FloatingText("+5%", segment.rect.center))
                             elif segment.color == Colors.BLUEX2 or segment.color == Colors.BLUEX3:
                                 segments_to_destroy_quietly.append(segment)
 
-                                for _ in range(2 if segment.color == Colors.BLUEX2 else 3):
+                                for i in range(2 if segment.color == Colors.BLUEX2 else 3):
                                     added_segment = Segment(segment.rect.left, Colors.BLUE, segment.speed, segment.rect.top)
                                     added_segment.is_from_multiple = True
                                     segments_to_spawn.append(added_segment)
                                     self.collect_segment(added_segment)
+                                    text_spawn_location = list(added_segment.rect.center)
+                                    text_spawn_location[0] += i*segment.rect.width*2
+                                    text_spawn_location[1] += i*segment.rect.height
+                                    text_to_spawn.append(FloatingText("+5%", text_spawn_location))
                             elif segment.color == Colors.PINK:
                                 segments_to_destroy_quietly.append(segment)
                                 if self.progressbar_fill > 0:
                                     segments_to_destroy_quietly.append(self.collected_segments.pop())
                                     self.progressbar_fill -= 1
+                                text_to_spawn.append(FloatingText("MINUS", segment.rect.center))
+
+                            elif segment.color == Colors.GRAY:
+                                segments_to_destroy_quietly.append(segment)
+                                text_to_spawn.append(FloatingText("0%", segment.rect.center))
+
+                            elif segment.color == Colors.RED:
+                                crashed = True
 
                             self.update_percentage_surface()
 
                         else:
+                            if segment.color == Colors.RED:
+                                crashed = True
                             segments_to_destroy.append(segment)
 
             if mouse_presses[0] and not self.is_progressbar_grabbed:
@@ -125,4 +141,4 @@ class Progressbar:
 
         screen.blit(self.progressbar, self.rect.topleft)
 
-        return segments_to_destroy, segments_to_destroy_quietly, segments_to_spawn, text_to_spawn
+        return segments_to_destroy, segments_to_destroy_quietly, segments_to_spawn, text_to_spawn, crashed

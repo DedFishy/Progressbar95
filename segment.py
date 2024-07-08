@@ -43,6 +43,8 @@ particle_velocity = 2
 particle_lifetime = 40
 particle_lifetime_variance = 10
 
+font = pygame.Font("progresspixel.ttf", 15)
+
 class SegmentBreakParticles:
     def __init__(self, pos, color):
         self.particles = []
@@ -96,6 +98,13 @@ class Segment:
 
         self.progressbar_position = -1 # if it's > -1, we're in the progress bar
 
+        self.text: pygame.Surface | None = None
+
+        if color == Colors.BLUEX2:
+            self.text = font.render(" 2 x", False, (255, 255, 255))
+        if color == Colors.BLUEX3:
+            self.text = font.render(" 3 x", False, (255, 255, 255))
+
         self.on_collected = None
 
         self.targeted_position = 0
@@ -148,3 +157,5 @@ class Segment:
             self.rect.y += self.speed
 
         pygame.draw.rect(screen, self.rgb, self.rect)
+        if self.text:
+            screen.blit(self.text, [self.rect.right, self.rect.centery - self.text.height/2])

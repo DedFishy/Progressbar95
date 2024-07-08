@@ -1,3 +1,5 @@
+import time
+from turtle import window_height
 import pygame
 
 pygame.init()
@@ -41,6 +43,7 @@ segment_spawn_queue = []
 clock = pygame.time.Clock()
 
 has_won = False
+win_close_timer = 300
 
 while not done:
     for event in pygame.event.get():
@@ -55,13 +58,14 @@ while not done:
 
     screen.fill(transparent)
 
-    progressbartrail.append(ProgressbarTrail(progressbar.rect.topleft, progressbar.progressbar))
-    for trail in progressbartrail:
-        trail.update(screen)
-    while len(progressbartrail) > progressbartrail_max_len:
-        del progressbartrail[0]
+    if not has_won:
+        progressbartrail.append(ProgressbarTrail(progressbar.rect.topleft, progressbar.progressbar))
+        for trail in progressbartrail:
+            trail.update(screen)
+        while len(progressbartrail) > progressbartrail_max_len:
+            del progressbartrail[0]
 
-    segments_to_destroy, segments_to_destroy_quietly, segments_to_spawn, text_to_spawn = progressbar.update(screen, segments, has_won)
+    segments_to_destroy, segments_to_destroy_quietly, segments_to_spawn, text_to_spawn, crashed = progressbar.update(screen, segments, has_won)
 
     for segment in segments_to_destroy_quietly:
         if segment in segments_to_destroy: segments_to_destroy.remove(segment)
@@ -107,7 +111,25 @@ while not done:
         for segment in unused_segments:
             segments.remove(segment)
         has_won = True
+        music.stop()
         pygame.mixer.Sound("win.mp3").play()
+
+    if has_won:
+        win_close_timer -= 1
+        if win_close_timer <= 0:
+            done = True
+
+    if crashed:
+        pygame.mixer.Sound("bsod.mp3").play()
+        image = pygame.Surface([width, height], pygame.SRCALPHA, 32)
+        image = image.convert_alpha()
+        image.fill((255, 0, 0, 100))
+        screen.blit(image, [0, 0])
+        pygame.display.update()
+        time.sleep(2)
+        utils.raise_bsod()
+        done = True
+        break
 
     pygame.display.update()
 
