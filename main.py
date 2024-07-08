@@ -2,9 +2,10 @@ import pygame
 
 pygame.init()
 
+from floating_text import FloatingText
 import utils
 from colors import transparent
-from progressbar import Progressbar
+from progressbar import Progressbar, ProgressbarTrail
 import random
 from segment import Segment, SegmentBreakParticles
 
@@ -23,8 +24,11 @@ hwnd = pygame.display.get_wm_info()["window"]
 utils.config_win32_window(hwnd)
 
 progressbar = Progressbar([width, height])
+progressbartrail: list[ProgressbarTrail] = []
+progressbartrail_max_len = 20
 segments: list[Segment] = []
 segment_particles: list[SegmentBreakParticles] = []
+text: list[FloatingText] = []
 
 segment_timer_range = (10, 100)
 
@@ -36,6 +40,7 @@ segment_spawn_queue = []
 
 clock = pygame.time.Clock()
 
+has_won = False
 
 while not done:
     for event in pygame.event.get():
@@ -44,13 +49,19 @@ while not done:
 
     segment_time_remaining -= 1
 
-    if segment_time_remaining <= 0:
+    if segment_time_remaining <= 0 and not has_won:
         segments.append(Segment(random.randint(0, width)))
         segment_time_remaining = random.randint(*segment_timer_range)
 
     screen.fill(transparent)
 
-    segments_to_destroy, segments_to_destroy_quietly, segments_to_spawn = progressbar.update(screen, segments)
+    progressbartrail.append(ProgressbarTrail(progressbar.rect.topleft, progressbar.progressbar))
+    for trail in progressbartrail:
+        trail.update(screen)
+    while len(progressbartrail) > progressbartrail_max_len:
+        del progressbartrail[0]
+
+    segments_to_destroy, segments_to_destroy_quietly, segments_to_spawn, text_to_spawn = progressbar.update(screen, segments, has_won)
 
     for segment in segments_to_destroy_quietly:
         if segment in segments_to_destroy: segments_to_destroy.remove(segment)
@@ -60,6 +71,8 @@ while not done:
         segments.remove(segment)
 
     segment_spawn_queue.extend(segments_to_spawn)
+
+    text.extend(text_to_spawn)
 
     if len(segment_spawn_queue) > 0:
         segment_spawn_queue_remaining -= 1
@@ -79,7 +92,22 @@ while not done:
         if result == False:
             segment_particles.remove(segment)
 
+    for floating_text in text:
+        result = floating_text.update(screen)
+        if result == False:
+            text.remove(floating_text)
+
     progressbar.render_precentage(screen)
+
+    if progressbar.progressbar_fill >= 20 and not has_won:
+        unused_segments = []
+        for segment in segments:
+            if segment.progressbar_position == -1:
+                unused_segments.append(segment)
+        for segment in unused_segments:
+            segments.remove(segment)
+        has_won = True
+        pygame.mixer.Sound("win.mp3").play()
 
     pygame.display.update()
 

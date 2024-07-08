@@ -28,3 +28,6 @@ def difference_to_direction_factor(difference):
     elif difference < 0:
         return 1
     return 0
+
+def difference_to_weighted_direction_factor(difference):
+    return round(-difference / 100, 1)
