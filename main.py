@@ -127,7 +127,7 @@ while not done:
         screen.blit(image, [0, 0])
         pygame.display.update()
         time.sleep(2)
-        utils.raise_bsod()
+        #utils.raise_bsod()
         done = True
         break
 

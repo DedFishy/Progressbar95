@@ -31,7 +31,7 @@ collect_multiple_sound = pygame.mixer.Sound("collect_blue_multiple.mp3")
 
 color_list =     [Colors.BLUE, Colors.YELLOW, Colors.BLUEX2, Colors.BLUEX3, Colors.PINK, Colors.GRAY, Colors.RED]
 weights =        [100,         75,            20,            10,            60,          50,          20]
-segment_speeds = [2,           2,             5,             4,             4,           2,           2]
+segment_speeds = [6,           5,             8,             10,            6,           7,           12]
 segment_speed_variance = min(segment_speeds) - 1
 
 particle_count = 5
